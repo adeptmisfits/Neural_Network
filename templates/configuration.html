@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural network configuration</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            color: #333;
+        }
+        input[type="number"],
+        input[type="text"] {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: calc(100% - 22px);
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Neural network configuration</h1>
+    <form method="post" action="{{ url_for('configuration') }}">
+        <label for="n_inputs">Inputs:</label>
+        <input type="number" id="n_inputs" name="n_inputs" required><br><br>
+
+        <label for="n_hidden_layers">Hidden layers:</label>
+        <input type="number" id="n_hidden_layers" name="n_hidden_layers" required><br><br>
+
+        <label for="neurons_per_layer">Neurons per layer (Comma separated):</label>
+        <input type="text" id="neurons_per_layer" name="neurons_per_layer" required><br><br>
+
+        <label for="n_outputs">Outputs:</label>
+        <input type="number" id="n_outputs" name="n_outputs" required><br><br>
+
+        <label for="n_epochs">Epochs:</label>
+        <input type="number" id="n_epochs" name="n_epochs" required><br><br>
+
+        <input type="submit" value="Save configuration">
+    </form>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network</title>
+    <!-- Include Plotly lib-->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Include Socket.IO lib-->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+        }
+        #neural-network-graph {
+            width: 70%;
+            max-width: 800px;
+            height: 600px;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        #text-container {
+            width: 30%;
+            max-width: 400px;
+            margin-left: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+        #text-container p {
+            font-size: 18px;
+            line-height: 1.6;
+        }
+        #controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: auto;
+        }
+        .control-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+        .control-button img {
+            vertical-align: middle;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
+        .control-button:hover {
+            background-color: #45a049;
+        }
+        .control-button.stop {
+            background-color: #f44336;
+        }
+        .control-button.stop:hover {
+            background-color: #e41f1c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Neural network graph</h1>
+    <div class="container">
+        <!-- Container for graph -->
+        <div id="neural-network-graph"></div>
+        <!-- Text container -->
+        <div id="text-container">
+            <p>
+                If error E is less than e .<br><br>
+                Calculate weight Wi.<br><br>
+                In other case.<br><br>
+                Weight stays the same
+            </p>
+            <!-- Controls for the graph -->
+            <div id="controls">
+               <button class="control-button" id="play">Play</button>
+                <button class="control-button" id="pause">Pause</button>
+                <button class="control-button" id="backward"> <<  </button>
+                <button class="control-button" id="forward"> >> </button>
+                <button class="control-button stop" id="stop">Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const socket = io();
+            var graphJSON = {{ graph_json | safe }};
+            var node_trace_dict = {};
+            var connection_trace_dict = {};
+            var connection_text_dict = {};
+
+            graphJSON.data.forEach(trace => {
+                if (trace.mode === 'markers+text') {
+                    node_trace_dict[trace.name] = trace;
+                } else if (trace.mode === 'text') {
+                    connection_text_dict[trace.name] = trace;
+                }
+            });
+
+            graphJSON.layout.shapes.forEach(shape => {
+                if (shape.name) {
+                    connection_trace_dict[shape.name] = shape;
+                }
+            });
+
+            Plotly.newPlot('neural-network-graph', graphJSON.data, graphJSON.layout);
+
+            socket.on('training_results', function(results) {
+                console.log('Training results:', results);
+
+                let weights = results.weights;
+                let activations = results.activations;
+
+                // Update weight and activations on the graph
+                if (weights && activations) {
+                    updateGraph(weights, activations);
+                }
+            });
+
+            function updateGraph(weights, activations) {
+                // Update nodes activations
+                activations.forEach((layer_activations, layer_index) => {
+                    layer_activations.forEach((activation, node_index) => {
+                        let trace_name = `Layer ${layer_index} Node ${node_index}`;
+                        if (node_trace_dict[trace_name]) {
+                            node_trace_dict[trace_name].marker.size = 20 + activation * 30; // Size based on activation
+                            node_trace_dict[trace_name].marker.color = `rgba(${Math.floor(255 * (1 - activation))}, ${Math.floor(255 * activation)}, 0, 1)`; // Color based on activation
+                            node_trace_dict[trace_name].text = activation.toFixed(2);  // Show the activation value
+                        }
+                    });
+                });
+
+                // Update connection weights
+                weights.forEach((layer_weights, layer_index) => {
+                    layer_weights.forEach((weight_row, node_index) => {
+                        weight_row.forEach((weight, connection_index) => {
+                            let shape_name = `Layer ${layer_index} Node ${node_index} to Layer ${layer_index + 1} Node ${connection_index}`;
+                            if (connection_trace_dict[shape_name]) {
+                                connection_trace_dict[shape_name].line.width = Math.abs(weight) * 2; // Size based on weight
+                                connection_trace_dict[shape_name].line.color = weight > 0 ? 'green' : 'red'; // Color based on weight
+                            }
+                            let text_name = `Text ${shape_name}`;
+                            if (connection_text_dict[text_name]) {
+                                connection_text_dict[text_name].text = weight.toFixed(2);  // Show weight value
+                            }
+                        });
+                    });
+                });
+
+                // Update graph with latest values
+                Plotly.redraw('neural-network-graph');
+            }
+
+            document.getElementById('play').addEventListener('click', function() {
+                fetch('/control_training', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({action: 'play'}),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Play action:', data);
+                })
+                .catch(error => console.error('Error:', error));
+            });
+
+            document.getElementById('pause').addEventListener('click', function() {
+                fetch('/control_training', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({action: 'pause'}),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Pause action:', data);
+                })
+                .catch(error => console.error('Error:', error));
+            });
+
+            document.getElementById('forward').addEventListener('click', function() {
+                fetch('/control_training', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({action: 'forward'}),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Forward action:', data);
+                })
+                .catch(error => console.error('Error:', error));
+            });
+
+            document.getElementById('backward').addEventListener('click', function() {
+                fetch('/control_training', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({action: 'backward'}),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('Backward action:', data);
+                    } else {
+                        console.error('Error:', data.message);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+
+            document.getElementById('stop').addEventListener('click', function() {
+                fetch('/control_training', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({action: 'stop'}),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('Stop action:', data);
+                    } else {
+                        console.error('Error:', data.message);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+    </script>
+</body>
+</html>
