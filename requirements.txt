@@ -1,9 +1,3 @@
 numpy
 flask
 plotly
-
-<button class="control-button" id="play">Play</button>
-        <button class="control-button" id="pause">Pause</button>
-        <button class="control-button" id="backward"> <<  </button>
-        <button class="control-button" id="forward"> >> </button>
-        <button class="control-button stop" id="stop">Stop</button>
