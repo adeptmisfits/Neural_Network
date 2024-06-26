@@ -6,3 +6,4 @@
 - Run command "pip install -r requirements.txt" to install dependencies
 - Run main.py
 - Open any browser and go to "http://127.0.0.1:5000"
+- Open console on developer tools to see logs for every epoch
